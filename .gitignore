@@ -1,0 +1,8 @@
+# Standard ignores
+/target
+Secrets*.toml
+
+# Ignore frontend build artifacts
+assets/*
+frontend/dist
+frontend/target
