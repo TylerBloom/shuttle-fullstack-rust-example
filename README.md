@@ -1,3 +1,6 @@
+## TL;DR
+To serve the webapp, all that you need to do is run `cargo shuttle run` from the backend sub-crate after you've installed the dependecies. That's it. The build process takes care of everything else.
+
 ## About
 This repo contains a basic layout for a fullstack Rust project (both frontend and backend in Rust). This contains of a backend server, a frontend webapp that is compiled to WASM, and a shared model.
 
