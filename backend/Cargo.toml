@@ -8,9 +8,9 @@ edition = "2021"
 template-model = { path = "../model" }
 
 # Standard deps
-axum = "0.6.18"
-shuttle-axum = "0.21.0"
-shuttle-runtime = "0.21.0"
+axum = { version = "0.7" }
+shuttle-runtime = { version = "0.39.0" }
+shuttle-axum = { version = "0.39.0" }
 tokio = "1.28.2"
 
 [build-dependencies]
