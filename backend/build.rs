@@ -3,50 +3,49 @@
  * JS bindings. Trunk is used to compile and generate the app and the JS bindings.
  */
 
-use std::{env, process::Command};
+use std::{
+    env,
+    fs::File,
+    io::{BufWriter, Read, Write},
+    process::Command,
+};
+
+use flate2::{write::GzEncoder, Compression};
 
 fn main() -> Result<(), i32> {
-    let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let fe_path = format!("{wd}/../frontend");
-
     // Install external dependency (in the shuttle container only)
     if std::env::var("HOSTNAME")
         .unwrap_or_default()
         .contains("shuttle")
+        || env::var("PROFILE")
+            .map(|v| v == "release")
+            .unwrap_or_default()
     {
-        // Install the `wasm32-unknown-unknown` target
-        if !std::process::Command::new("rustup")
-            .args(["target", "add", "wasm32-unknown-unknown"])
-            .status()
-            .expect("failed to run rustup")
-            .success()
-        {
-            panic!("failed to install rustup")
-        }
-
-        // Install `trunk` to compile the frontend
-        if !std::process::Command::new("cargo")
-            .args(["install", "trunk"])
-            .status()
-            .expect("failed to run rustup")
-            .success()
-        {
-            panic!("failed to install rustup")
-        }
+        compile_fe();
     }
+    Ok(())
+}
 
+fn compile_fe() {
+    // Calls trunk to compile the frontend
     let mut cmd = Command::new("trunk");
     cmd.args(["build", "-d", "../assets", "--filehash", "false"]);
 
-    if Ok("release".to_owned()) == env::var("PROFILE") {
-        cmd.arg("--release");
+    cmd.arg("--release");
+    cmd.arg("../frontend/index.html");
+    if let Err(e) = cmd.status() {
+        panic!("Failed to compile frontend!\n{e}");
     }
-    cmd.arg(format!("{fe_path}/index.html"));
-    match cmd.status().map(|s| s.success()) {
-        Ok(false) | Err(_) => return Err(1),
-        _ => {}
+
+    // Compresses the WASM module
+    let mut wasm_file =
+        File::open("../assets/template-frontend_bg.wasm").expect("Failed to open WASM file");
+    let mut wasm_data = Vec::new();
+    wasm_file.read_to_end(&mut wasm_data).unwrap();
+
+    let output_file = File::create("../assets/template-frontend_bg.wasm.gz").unwrap();
+    let mut encoder = GzEncoder::new(BufWriter::new(output_file), Compression::default());
+    if let Err(e) = encoder.write_all(&wasm_data).map_err(|_| 1) {
+        panic!("Failed to compress WASM module!\n{e}");
     }
-    println!("cargo:rerun-if-changed={fe_path}");
-    println!("cargo:rerun-if-changed=build.rs");
-    Ok(())
 }
